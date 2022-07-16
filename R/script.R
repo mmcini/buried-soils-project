@@ -142,12 +142,12 @@ fertility_glei_ufla <- read_csv("../Data/Fertilidade/fertilidade_glei_ufla.csv")
 # Fixing column names
 column_names_symbols <- c("ID", "Protocol", "Sample", "Depth", "pH",
                           "K⁺", "P", "Na⁺", "Ca²⁺", "Mg²⁺", "Al³⁺", "H⁺+Al³⁺",
-                          "SB", "t", "T", "V", "m", "O.M.", "P.Rem")
+                          "SB", "t", "T", "V", "m", "S.O.M.", "P.Rem")
 
 ## Version without symbols, some functions cannot handle superscripts
 column_names <- c("ID", "Protocol", "Sample", "Depth", "pH", "K",
                   "P", "Na", "Ca", "Mg", "Al", "H+Al", "SB", "t",
-                  "T", "V", "m", "O.M.", "P.Rem")
+                  "T", "V", "m", "S.O.M.", "P.Rem")
 
 names(fertility_ox_ufla) <- column_names
 names(fertility_ox_quartz) <- column_names
@@ -230,7 +230,7 @@ for (soil in soil_names) {
                          fertility_plots[[soil]][["Al"]],
                          fertility_plots[[soil]][["V"]],
                          fertility_plots[[soil]][["m"]],
-                         fertility_plots[[soil]][["O.M."]],
+                         fertility_plots[[soil]][["S.O.M."]],
                          nrow = 1, widths = c(1.3, 1, 1, 1, 1, 1, 1))
     arrange <- annotate_figure(arrange, top = text_grob(plot_titles[soil],
                                              size = 12,
