@@ -8,19 +8,19 @@ library(scales)
 ### PXRF ###########################################################################################
 
 # Loading data
-pxrf_ox_ufla <- read_csv("../Data/Perfis/pxrf_ox_ufla.csv") %>%
+pxrf_ox_ufla <- read_csv("Data/Perfis/pxrf_ox_ufla.csv") %>%
     select(-ends_with("-")) %>%
     group_by(Lat) %>%
     summarize(across(everything(), mean, na.rm = T)) %>%
     rename(Depth = Lat) %>%
     replace(is.na(.), 0)
-pxrf_ox_quartz <- read_csv("../Data/Perfis/pxrf_ox_quartz.csv") %>%
+pxrf_ox_quartz <- read_csv("Data/Perfis/pxrf_ox_quartz.csv") %>%
     select(-ends_with("-")) %>%
     group_by(Lat) %>%
     summarize(across(everything(), mean, na.rm = T)) %>%
     rename(Depth = Lat) %>%
     replace(is.na(.), 0)
-pxrf_glei_ufla <- read_csv("../Data/Perfis/pxrf_glei_ufla.csv") %>%
+pxrf_glei_ufla <- read_csv("Data/Perfis/pxrf_glei_ufla.csv") %>%
     select(-ends_with("-")) %>%
     group_by(Lat) %>%
     summarize(across(everything(), mean, na.rm = T)) %>%
@@ -135,9 +135,9 @@ ggsave("pxrf_depth.png", pxrf_depth_plots, device = "png",
 ### FERTILITY ATTRIBUTES ###########################################################################
 
 # Loading data
-fertility_ox_ufla <- read_csv("../Data/Fertilidade/fertilidade_ox_ufla.csv")
-fertility_ox_quartz <- read_csv("../Data/Fertilidade/fertilidade_ox_quartz.csv")
-fertility_glei_ufla <- read_csv("../Data/Fertilidade/fertilidade_glei_ufla.csv")
+fertility_ox_ufla <- read_csv("Data/Fertilidade/fertilidade_ox_ufla.csv")
+fertility_ox_quartz <- read_csv("Data/Fertilidade/fertilidade_ox_quartz.csv")
+fertility_glei_ufla <- read_csv("Data/Fertilidade/fertilidade_glei_ufla.csv")
 
 # Fixing column names
 column_names_symbols <- c("ID", "Protocol", "Sample", "Depth", "pH",
@@ -248,9 +248,9 @@ ggsave("fertility_depth.png", fertility_depth_plots, device = "png",
 ### TEXTURE ########################################################################################
 
 # Loading data
-texture_ox_ufla <- read_csv("../Data/Textura/textura_ox_ufla.csv")
-texture_ox_quartz <- read_csv("../Data/Textura/textura_ox_quartz.csv")
-texture_glei_ufla <- read_csv("../Data/Textura/textura_glei_ufla.csv")
+texture_ox_ufla <- read_csv("Data/Textura/textura_ox_ufla.csv")
+texture_ox_quartz <- read_csv("Data/Textura/textura_ox_quartz.csv")
+texture_glei_ufla <- read_csv("Data/Textura/textura_glei_ufla.csv")
 
 column_names <- c("ID", "Protocol", "Sample", "Depth", "Clay",
                   "Silt", "Coarse sand", "Fine sand")
@@ -285,6 +285,8 @@ plot_titles <- list(ox_ufla = "Typic Udifolists (TU)",
 
 colors <- c("#B83100", "#008FF5", "#DBDB95", "#9E7757")
 
+eixo_x <- rev(c(5, 20, 35, 50, 65, 80, 95, 110))
+
 ## Creating plots
 texture_plots <- list()
 for (soil in soil_names) {
@@ -318,7 +320,6 @@ texture_plots_arrange <- ggarrange(texture_plots[["ox_ufla"]],
                             texture_plots[["glei_ufla"]],
                             nrow = 1, common.legend = T, legend = "bottom")
 
-
 ggsave("texture_plots.png", texture_plots_arrange, device = "png",
        width = 210, height = 130, units = "mm", bg = "white")
 
@@ -336,17 +337,17 @@ depth <- factor(c(rep("5 cm", 5), rep("20 cm", 5),
                   rep("95 cm", 5), rep("110 cm", 5)),
                   levels = depth_order, ordered = T)
 
-visnir_ox_ufla <- read_csv("../Data/Espectral/visnir_ox_ufla.csv") %>%
+visnir_ox_ufla <- read_csv("Data/Espectral/visnir_ox_ufla.csv") %>%
     group_by(amostra) %>%
     summarize(across(c(3:2153), mean)) %>%
     add_column(Depth = depth, .after = "amostra")
 
-visnir_ox_quartz <- read_csv("../Data/Espectral/visnir_ox_quartz.csv") %>%
+visnir_ox_quartz <- read_csv("Data/Espectral/visnir_ox_quartz.csv") %>%
     group_by(amostra) %>%
     summarize(across(c(3:2153), mean)) %>%
     add_column(Depth = depth, .after = "amostra")
 
-visnir_glei_ufla <- read_csv("../Data/Espectral/visnir_glei_ufla.csv") %>%
+visnir_glei_ufla <- read_csv("Data/Espectral/visnir_glei_ufla.csv") %>%
     group_by(amostra) %>%
     summarize(across(c(3:2153), mean)) %>%
     add_column(Depth = depth, .after = "amostra")
@@ -386,7 +387,7 @@ visnir_ox_ufla_cr <- visnir_ox_ufla_cr %>%
                   summarize(across(c(2:2152), mean)) %>%
                   pivot_longer(c(2:2152),
                                names_to = "Wavelength (nm)",
-                               values_to = "Reflectance Factor") %>%
+                               values_to = "Reflectance") %>%
                   mutate("Wavelength (nm)" = as.numeric(`Wavelength (nm)`))
               
 visnir_ox_quartz_cr <- visnir_ox_quartz_cr %>%
@@ -394,7 +395,7 @@ visnir_ox_quartz_cr <- visnir_ox_quartz_cr %>%
                   summarize(across(c(2:2152), mean)) %>%
                   pivot_longer(c(2:2152),
                                names_to = "Wavelength (nm)",
-                               values_to = "Reflectance Factor") %>%
+                               values_to = "Reflectance") %>%
                   mutate("Wavelength (nm)" = as.numeric(`Wavelength (nm)`))
 
 visnir_glei_ufla_cr <- visnir_glei_ufla_cr %>%
@@ -402,7 +403,7 @@ visnir_glei_ufla_cr <- visnir_glei_ufla_cr %>%
                   summarize(across(c(2:2152), mean)) %>%
                   pivot_longer(c(2:2152),
                                names_to = "Wavelength (nm)",
-                               values_to = "Reflectance Factor") %>%
+                               values_to = "Reflectance") %>%
                   mutate("Wavelength (nm)" = as.numeric(`Wavelength (nm)`))
 
 soil_names <- c("ox_ufla", "ox_quartz", "glei_ufla")
@@ -428,7 +429,7 @@ segment_coord <- tibble(x = c(400, 400, 700),
 visnir_plots <- list()
 for (soil in soil_names) {
     plot <- ggplot(visnir_data[[soil]],
-                   aes(x = `Wavelength (nm)`, y = `Reflectance Factor`)) +
+                   aes(x = `Wavelength (nm)`, y = `Reflectance`)) +
         geom_line(aes(color = Depth)) +
         ggtitle(plot_titles[soil]) +
         scale_y_continuous(breaks = seq(0, 1, 0.25),
@@ -473,7 +474,7 @@ visnir_cr_plots_arrange <- ggarrange(visnir_plots[["ox_ufla"]],
 
 print(visnir_cr_plots_arrange)
 
-ggsave("visnir_cr_plots.png", visnir_cr_plots_arrange, device = "png",
+ggsave("Figures/visnir_cr_plots.png", visnir_cr_plots_arrange, device = "png",
        width = 210, height = 220, units = "mm", bg = "white")
 
 ### MIR ############################################################################################
@@ -490,13 +491,13 @@ depth <- factor(c(rep("5 cm", 5), rep("20 cm", 5),
                   rep("95 cm", 5), rep("110 cm", 5)),
                   levels = depth_order, ordered = T)
 
-mir_ox_ufla <- read_csv("../Data/Espectral/mir_ox_ufla.csv") %>%
+mir_ox_ufla <- read_csv("Data/Espectral/mir_ox_ufla.csv") %>%
     add_column(Profundidade = depth, .after = "amostra")
 
-mir_ox_quartz <- read_csv("../Data/Espectral/mir_ox_quartz.csv") %>%
+mir_ox_quartz <- read_csv("Data/Espectral/mir_ox_quartz.csv") %>%
     add_column(Profundidade = depth, .after = "amostra")
 
-mir_glei_ufla <- read_csv("../Data/Espectral/mir_glei_ufla.csv") %>%
+mir_glei_ufla <- read_csv("Data/Espectral/mir_glei_ufla.csv") %>%
     add_column(Profundidade = depth, .after = "amostra")
 
 # Organizing data for plotting
@@ -506,7 +507,7 @@ mir_ox_ufla <- mir_ox_ufla %>%
                summarize(across(c(2:3402), mean)) %>%
                pivot_longer(c(2:3402),
                             names_to = "Wavenumber (cm-1)",
-                            values_to = "Reflectance Factor") %>%
+                            values_to = "Reflectance") %>%
                mutate("Wavenumber (cm-1)" = -as.numeric(`Wavenumber (cm-1)`)) %>%
                filter(`Wavenumber (cm-1)` > -3714)
               
@@ -515,7 +516,7 @@ mir_ox_quartz <- mir_ox_quartz %>%
                  summarize(across(c(2:3402), mean)) %>%
                  pivot_longer(c(2:3402),
                               names_to = "Wavenumber (cm-1)",
-                              values_to = "Reflectance Factor") %>%
+                              values_to = "Reflectance") %>%
                  mutate("Wavenumber (cm-1)" = -as.numeric(`Wavenumber (cm-1)`)) %>%
                  filter(`Wavenumber (cm-1)` > -3714)
 
@@ -524,7 +525,7 @@ mir_glei_ufla <- mir_glei_ufla %>%
                  summarize(across(c(2:3402), mean)) %>%
                  pivot_longer(c(2:3402),
                               names_to = "Wavenumber (cm-1)",
-                              values_to = "Reflectance Factor") %>%
+                              values_to = "Reflectance") %>%
                  mutate("Wavenumber (cm-1)" = -as.numeric(`Wavenumber (cm-1)`)) %>%
                  filter(`Wavenumber (cm-1)` > -3714)
 
@@ -533,7 +534,7 @@ mir_data <- list(ox_ufla = mir_ox_ufla,
                         ox_quartz = mir_ox_quartz,
                         glei_ufla = mir_glei_ufla)
 
-plot_titles <- list(ox_ufla = "Histisol",
+plot_titles <- list(ox_ufla = "Typic Udifolists (TU)",
                     ox_quartz = "Typic Dystrustepts (TD)",
                     glei_ufla = "Typic Endoaquents (TE)")
 
@@ -548,7 +549,7 @@ positions_ox <- c(rep(0.02, 5), 0, rep(0.02, 20))
 mir_plots <- list()
 for (soil in soil_names) {
     plot <- ggplot(mir_data[[soil]],
-                   aes(x = `Wavenumber (cm-1)`, y = `Reflectance Factor`)) +
+                   aes(x = `Wavenumber (cm-1)`, y = `Reflectance`)) +
         xlab(expression("Wavenumber "~(cm^{-1}))) +
         geom_line(aes(color = Profundidade)) +
         ggtitle(plot_titles[soil]) +
@@ -610,7 +611,7 @@ mir_plots_arrange <- ggarrange(mir_plots[["ox_ufla"]],
                             legend = "bottom")
 mir_plots_arrange
 
-ggsave("mir_plots.png", mir_plots_arrange, device = "png",
+ggsave("Figures/mir_plots.png", mir_plots_arrange, device = "png",
        width = 210, height = 220, units = "mm", bg = "white")
 
 # XRD ##############################################################################################
@@ -618,7 +619,7 @@ ggsave("mir_plots.png", mir_plots_arrange, device = "png",
 # Typic Udifolists (TU)
 ## Loading data
 ## Pivoting data and adding texture info
-xrd_ox_ufla <- read_csv("../Data/DRX/xrd_ox_ufla.csv")
+xrd_ox_ufla <- read_csv("Data/DRX/xrd_ox_ufla.csv")
 
 xrd_ox_ufla <- xrd_ox_ufla %>%
     filter(X > 7) %>%
@@ -686,7 +687,7 @@ xrd_ox_ufla_plots[["Sand"]] <- xrd_ox_ufla_plots[["Sand"]] +
         annotate("text", label = mineral_names,
                 x = minerals_text_x, y = minerals_text_y,
                 hjust = 0,
-                size = 2.5,
+                size = 3.5,
                 family = "Times New Roman")
 
 mineral_names <- c("Kt", "Gb", "Qz", "Kt", "Kt + An", "Qz", "Gb + Kt")
@@ -696,7 +697,7 @@ xrd_ox_ufla_plots[["Silt"]] <- xrd_ox_ufla_plots[["Silt"]] +
         annotate("text", label = mineral_names,
                 x = minerals_text_x, y = minerals_text_y,
                 hjust = 0,
-                size = 2.5,
+                size = 3.5,
                 family = "Times New Roman")
 
 mineral_names <- c("Kt", "Gb", "Gb + Kt", "Kt", "Kt + An", "Kt")
@@ -706,7 +707,7 @@ xrd_ox_ufla_plots[["Clay"]] <- xrd_ox_ufla_plots[["Clay"]] +
         annotate("text", label = mineral_names,
                 x = minerals_text_x, y = minerals_text_y,
                 hjust = 0,
-                size = 2.5,
+                size = 3.5,
                 family = "Times New Roman")
 
 xrd_ox_ufla_arrange <- ggarrange(xrd_ox_ufla_plots[["Sand"]],
@@ -718,7 +719,7 @@ xrd_ox_ufla_arrange <- ggarrange(xrd_ox_ufla_plots[["Sand"]],
 # Typic Dystrustepts (TD)
 ### Loading data
 ### Pivoting data and adding texture info
-xrd_ox_quartz <- read_csv("../Data/DRX/xrd_ox_quartz.csv")
+xrd_ox_quartz <- read_csv("Data/DRX/xrd_ox_quartz.csv")
 
 xrd_ox_quartz <- xrd_ox_quartz %>%
     filter(X > 7) %>%
@@ -800,7 +801,7 @@ xrd_ox_quartz_plots[["Sand"]] <- xrd_ox_quartz_plots[["Sand"]] +
         annotate("text", label = mineral_names,
                 x = minerals_text_x, y = minerals_text_y,
                 hjust = 0,
-                size = 2.5,
+                size = 3.5,
                 family = "Times New Roman")
 
 mineral_names <- c("Mc", "Kt", "Mc", "Kt", "Qz", "Il", "Qz", "Ru",
@@ -822,7 +823,7 @@ xrd_ox_quartz_plots[["Silt"]] <- xrd_ox_quartz_plots[["Silt"]] +
         annotate("text", label = mineral_names,
                 x = minerals_text_x, y = minerals_text_y,
                 hjust = 0,
-                size = 2.5,
+                size = 3.5,
                 family = "Times New Roman")
 
 mineral_names <- c("Kt", "Gb", "Kt + Gb", "Gt", "Kt", "Qz", "Kt + Gb",
@@ -842,7 +843,7 @@ xrd_ox_quartz_plots[["Clay"]] <- xrd_ox_quartz_plots[["Clay"]] +
         annotate("text", label = mineral_names,
                 x = minerals_text_x, y = minerals_text_y,
                 hjust = 0,
-                size = 2.5,
+                size = 3.5,
                 family = "Times New Roman")
 
 xrd_ox_quartz_arrange <- ggarrange(xrd_ox_quartz_plots[["Sand"]],
@@ -854,7 +855,7 @@ xrd_ox_quartz_arrange <- ggarrange(xrd_ox_quartz_plots[["Sand"]],
 # Typic Endoaquents (TE)
 ### Loading data
 ### Pivoting data and adding texture info
-xrd_glei_ufla <- read_csv("../Data/DRX/xrd_glei_ufla.csv")
+xrd_glei_ufla <- read_csv("Data/DRX/xrd_glei_ufla.csv")
 
 xrd_glei_ufla <- xrd_glei_ufla %>%
     filter(X > 7) %>%
@@ -922,7 +923,7 @@ xrd_glei_ufla_plots[["Sand"]] <- xrd_glei_ufla_plots[["Sand"]] +
         annotate("text", label = mineral_names,
                 x = minerals_text_x, y = minerals_text_y,
                 hjust = 0,
-                size = 2.5,
+                size = 3.5,
                 family = "Times New Roman")
 
 mineral_names <- c("Mc", "Ta", "Kt", "Mc", "Gb", "Kt", "Qz", "Kt", "Qz", "Ft",
@@ -944,7 +945,7 @@ xrd_glei_ufla_plots[["Silt"]] <- xrd_glei_ufla_plots[["Silt"]] +
         annotate("text", label = mineral_names,
                 x = minerals_text_x, y = minerals_text_y,
                 hjust = 0,
-                size = 2.5,
+                size = 3.5,
                 family = "Times New Roman")
 
 mineral_names <- c("Gt", "Kt", "Gb", "Kt + Gb", rep("Kt", 4))
@@ -964,7 +965,7 @@ xrd_glei_ufla_plots[["Clay"]] <- xrd_glei_ufla_plots[["Clay"]] +
         annotate("text", label = mineral_names,
                 x = minerals_text_x, y = minerals_text_y,
                 hjust = 0,
-                size = 2.5,
+                size = 3.5,
                 family = "Times New Roman")
 
 xrd_glei_ufla_arrange <- ggarrange(xrd_glei_ufla_plots[["Sand"]],
