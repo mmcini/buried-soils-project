@@ -2,8 +2,11 @@ library(RColorBrewer)
 library(extrafont)
 library(tidyverse)
 library(prospectr)
+library(ggpmisc)
+library(ggrepel)
 library(ggpubr)
 library(scales)
+library(caret)
 
 ### PXRF ###########################################################################################
 
@@ -613,6 +616,315 @@ mir_plots_arrange
 
 ggsave("Figures/mir_plots.png", mir_plots_arrange, device = "png",
        width = 210, height = 220, units = "mm", bg = "white")
+
+# PCA ##############################################################################################
+depth_order <- c("5", "20", "35",
+                 "50", "65", "80",
+                 "95", "110")
+
+depth <- factor(c(rep("5", 5), rep("20", 5),
+                  rep("35", 5), rep("50", 5),
+                  rep("65", 5), rep("80", 5),
+                  rep("95", 5), rep("110", 5)),
+                  levels = depth_order, ordered = T)
+
+colors <- brewer.pal(8, "RdGy")
+
+pca_layout <- list(
+geom_point(aes(color = `Depth (cm)`), size = 3),
+scale_color_manual(values = colors),
+geom_hline(yintercept = 0),
+guides(colour = guide_legend(nrow = 1)),
+theme_bw(),
+theme(text = element_text(family = "Times New Roman"),
+      title = element_text(size = 9),
+      panel.grid = element_blank(),
+      plot.title = element_text(hjust = 0.5),
+      legend.position = "right"))
+
+# PXRF data prepatarion
+pxrf_ox_ufla <- read_csv("Data/Perfis/pxrf_ox_ufla.csv") %>%
+    select(-ends_with("-")) %>%
+    group_by(Lat) %>%
+    summarize(across(everything(), mean, na.rm = T)) %>%
+    rename(Depth = Lat) %>%
+    mutate(Depth = (Depth - 5) * -1) %>%
+    replace(is.na(.), 0) %>%
+    select("Depth", "Mg":"U") %>%
+    select(-nearZeroVar(.)) %>%
+    pivot_longer(cols = -"Depth", names_to = "Vars", values_to = "Values") %>%
+    pivot_wider(values_from = "Values", names_from = "Depth")
+pxrf_ox_quartz <- read_csv("Data/Perfis/pxrf_ox_quartz.csv") %>%
+    select(-ends_with("-")) %>%
+    group_by(Lat) %>%
+    summarize(across(everything(), mean, na.rm = T)) %>%
+    rename(Depth = Lat) %>%
+    mutate(Depth = (Depth - 5) * -1) %>%
+    replace(is.na(.), 0) %>%
+    select("Depth", "Mg":"U") %>%
+    select(-nearZeroVar(.)) %>%
+    pivot_longer(cols = -"Depth", names_to = "Vars", values_to = "Values") %>%
+    pivot_wider(values_from = "Values", names_from = "Depth")
+pxrf_glei_ufla <- read_csv("Data/Perfis/pxrf_glei_ufla.csv") %>%
+    select(-ends_with("-")) %>%
+    group_by(Lat) %>%
+    summarize(across(everything(), mean, na.rm = T)) %>%
+    rename(Depth = Lat) %>%
+    mutate(Depth = (Depth - 5) * -1) %>%
+    replace(is.na(.), 0) %>%
+    select("Depth", "Mg":"U") %>%
+    select(-nearZeroVar(.)) %>%
+    pivot_longer(cols = -"Depth", names_to = "Vars", values_to = "Values") %>%
+    pivot_wider(values_from = "Values", names_from = "Depth")
+
+## Building the PCAs
+pxrf_pca_ox_ufla <- prcomp(pxrf_ox_ufla[-1], scale = T, center = T, rank. = 2)
+pc1_var_exp <- round(summary(pxrf_pca_ox_ufla)$importance[2, 1], 4) * 100
+pc1_var_exp <- paste0("PC1 ", pc1_var_exp, "%")
+pc2_var_exp <- round(summary(pxrf_pca_ox_ufla)$importance[2, 2], 4) * 100
+pc2_var_exp <- paste0("PC2 ", pc2_var_exp, "%")
+pxrf_pca_ox_ufla <- pxrf_pca_ox_ufla$rotation %>%
+    t() %>%
+    as_tibble()
+pxrf_pca_ox_ufla <- pxrf_pca_ox_ufla %>%
+    add_column("PC" = c("PC1", "PC2")) %>%
+    pivot_longer(-"PC", names_to = "Depth (cm)", values_to = "Values") %>%
+    pivot_wider(names_from = "PC", values_from = "Values") %>%
+    mutate(`Depth (cm)` = factor(`Depth (cm)`,
+                                 labels = depth_order,
+                                 ordered = T))
+
+pxrf_pca_ox_ufla_plot <- ggplot(pxrf_pca_ox_ufla, aes(x = PC1, y = PC2)) +
+    xlab(pc1_var_exp) + ylab(pc2_var_exp) +
+    ggtitle("Typic Udifolists (TU) - PXRF") +
+    pca_layout
+
+pxrf_pca_ox_quartz <- prcomp(pxrf_ox_quartz[-1], scale = T, center = T, rank. = 2)
+pc1_var_exp <- round(summary(pxrf_pca_ox_quartz)$importance[2, 1], 4) * 100
+pc1_var_exp <- paste0("PC1 ", pc1_var_exp, "%")
+pc2_var_exp <- round(summary(pxrf_pca_ox_quartz)$importance[2, 2], 4) * 100
+pc2_var_exp <- paste0("PC2 ", pc2_var_exp, "%")
+pxrf_pca_ox_quartz <- pxrf_pca_ox_quartz$rotation %>%
+    t() %>%
+    as_tibble()
+pxrf_pca_ox_quartz <- pxrf_pca_ox_quartz %>%
+    add_column("PC" = c("PC1", "PC2")) %>%
+    pivot_longer(-"PC", names_to = "Depth (cm)", values_to = "Values") %>%
+    pivot_wider(names_from = "PC", values_from = "Values") %>%
+    mutate(`Depth (cm)` = factor(`Depth (cm)`,
+                                 labels = depth_order,
+                                 ordered = T))
+
+pxrf_pca_ox_quartz_plot <- ggplot(pxrf_pca_ox_quartz, aes(x = PC1, y = PC2)) +
+    xlab(pc1_var_exp) + ylab(pc2_var_exp) +
+    ggtitle("Typic Dystrustepts (TD) - PXRF") +
+    pca_layout
+
+pxrf_pca_glei_ufla <- prcomp(pxrf_glei_ufla[-1], scale = T, center = T, rank. = 2)
+pc1_var_exp <- round(summary(pxrf_pca_glei_ufla)$importance[2, 1], 4) * 100
+pc1_var_exp <- paste0("PC1 ", pc1_var_exp, "%")
+pc2_var_exp <- round(summary(pxrf_pca_glei_ufla)$importance[2, 2], 4) * 100
+pc2_var_exp <- paste0("PC2 ", pc2_var_exp, "%")
+pxrf_pca_glei_ufla <- pxrf_pca_glei_ufla$rotation %>%
+    t() %>%
+    as_tibble()
+pxrf_pca_glei_ufla <- pxrf_pca_glei_ufla %>%
+    add_column("PC" = c("PC1", "PC2")) %>%
+    pivot_longer(-"PC", names_to = "Depth (cm)", values_to = "Values") %>%
+    pivot_wider(names_from = "PC", values_from = "Values") %>%
+    mutate(`Depth (cm)` = factor(`Depth (cm)`,
+                                 labels = depth_order,
+                                 ordered = T))
+
+pxrf_pca_glei_ufla_plot <- ggplot(pxrf_pca_glei_ufla, aes(x = PC1, y = PC2)) +
+    xlab(pc1_var_exp) + ylab(pc2_var_exp) +
+    ggtitle("Typic Endoaquents (TE) - PXRF") +
+    pca_layout
+
+## Vis-NIR
+visnir_ox_ufla <- read_csv("Data/Espectral/visnir_ox_ufla.csv") %>%
+    group_by(amostra) %>%
+    summarize(across(c(3:2153), mean)) %>%
+    add_column("Depth (cm)" = depth, .after = "amostra") %>%
+    group_by(`Depth (cm)`) %>%
+    summarize(across(c(2:2152), mean)) %>%
+    pivot_longer(cols = c(2:2152), names_to = "Bands", values_to = "Values") %>%
+    pivot_wider(names_from = "Depth (cm)", values_from = "Values")
+visnir_ox_quartz <- read_csv("Data/Espectral/visnir_ox_quartz.csv") %>%
+    group_by(amostra) %>%
+    summarize(across(c(3:2153), mean)) %>%
+    add_column("Depth (cm)" = depth, .after = "amostra") %>%
+    group_by(`Depth (cm)`) %>%
+    summarize(across(c(2:2152), mean)) %>%
+    pivot_longer(cols = c(2:2152), names_to = "Bands", values_to = "Values") %>%
+    pivot_wider(names_from = "Depth (cm)", values_from = "Values")
+visnir_glei_ufla <- read_csv("Data/Espectral/visnir_glei_ufla.csv") %>%
+    group_by(amostra) %>%
+    summarize(across(c(3:2153), mean)) %>%
+    add_column("Depth (cm)" = depth, .after = "amostra") %>%
+    group_by(`Depth (cm)`) %>%
+    summarize(across(c(2:2152), mean)) %>%
+    pivot_longer(cols = c(2:2152), names_to = "Bands", values_to = "Values") %>%
+    pivot_wider(names_from = "Depth (cm)", values_from = "Values")
+
+visnir_pca_ox_ufla <- prcomp(visnir_ox_ufla[-1], scale = T, center = T, rank. = 2)
+pc1_var_exp <- round(summary(visnir_pca_ox_ufla)$importance[2, 1], 4) * 100
+pc1_var_exp <- paste0("PC1 ", pc1_var_exp, "%")
+pc2_var_exp <- round(summary(visnir_pca_ox_ufla)$importance[2, 2], 4) * 100
+pc2_var_exp <- paste0("PC2 ", pc2_var_exp, "%")
+visnir_pca_ox_ufla <- visnir_pca_ox_ufla$rotation %>%
+    t() %>%
+    as_tibble()
+visnir_pca_ox_ufla <- visnir_pca_ox_ufla %>%
+    add_column("PC" = c("PC1", "PC2")) %>%
+    pivot_longer(-"PC", names_to = "Depth (cm)", values_to = "Values") %>%
+    pivot_wider(names_from = "PC", values_from = "Values") %>%
+    mutate(`Depth (cm)` = factor(`Depth (cm)`,
+                                 labels = depth_order,
+                                 ordered = T))
+
+visnir_pca_ox_ufla_plot <- ggplot(visnir_pca_ox_ufla, aes(x = PC1, y = PC2)) +
+    xlab(pc1_var_exp) + ylab(pc2_var_exp) +
+    ggtitle("Typic Udifolists (TU) - Vis-NIR") +
+    pca_layout
+
+visnir_pca_ox_quartz <- prcomp(visnir_ox_quartz[-1], scale = T, center = T, rank. = 2)
+pc1_var_exp <- round(summary(visnir_pca_ox_quartz)$importance[2, 1], 4) * 100
+pc1_var_exp <- paste0("PC1 ", pc1_var_exp, "%")
+pc2_var_exp <- round(summary(visnir_pca_ox_quartz)$importance[2, 2], 4) * 100
+pc2_var_exp <- paste0("PC2 ", pc2_var_exp, "%")
+visnir_pca_ox_quartz <- visnir_pca_ox_quartz$rotation %>%
+    t() %>%
+    as_tibble()
+visnir_pca_ox_quartz <- visnir_pca_ox_quartz %>%
+    add_column("PC" = c("PC1", "PC2")) %>%
+    pivot_longer(-"PC", names_to = "Depth (cm)", values_to = "Values") %>%
+    pivot_wider(names_from = "PC", values_from = "Values") %>%
+    mutate(`Depth (cm)` = factor(`Depth (cm)`,
+                                 labels = depth_order,
+                                 ordered = T))
+
+visnir_pca_ox_quartz_plot <- ggplot(visnir_pca_ox_quartz, aes(x = PC1, y = PC2)) +
+    xlab(pc1_var_exp) + ylab(pc2_var_exp) +
+    ggtitle("Typic Dystrustepts (TD) - Vis-NIR") +
+    pca_layout
+
+visnir_pca_glei_ufla <- prcomp(visnir_glei_ufla[-1], scale = T, center = T, rank. = 2)
+pc1_var_exp <- round(summary(visnir_pca_glei_ufla)$importance[2, 1], 4) * 100
+pc1_var_exp <- paste0("PC1 ", pc1_var_exp, "%")
+pc2_var_exp <- round(summary(visnir_pca_glei_ufla)$importance[2, 2], 4) * 100
+pc2_var_exp <- paste0("PC2 ", pc2_var_exp, "%")
+visnir_pca_glei_ufla <- visnir_pca_glei_ufla$rotation %>%
+    t() %>%
+    as_tibble()
+visnir_pca_glei_ufla <- visnir_pca_glei_ufla %>%
+    add_column("PC" = c("PC1", "PC2")) %>%
+    pivot_longer(-"PC", names_to = "Depth (cm)", values_to = "Values") %>%
+    pivot_wider(names_from = "PC", values_from = "Values") %>%
+    mutate(`Depth (cm)` = factor(`Depth (cm)`,
+                                 labels = depth_order,
+                                 ordered = T))
+
+visnir_pca_glei_ufla_plot <- ggplot(visnir_pca_glei_ufla, aes(x = PC1, y = PC2)) +
+    xlab(pc1_var_exp) + ylab(pc2_var_exp) +
+    ggtitle("Typic Endoaquents (TE) - Vis-NIR") +
+    pca_layout
+
+visnir_pca_arrange <- ggarrange(visnir_pca_ox_ufla_plot,
+                                visnir_pca_ox_quartz_plot,
+                                visnir_pca_glei_ufla_plot, nrow = 1, legend = "bottom")
+
+ ## MIR
+mir_ox_ufla <- read_csv("Data/Espectral/mir_ox_ufla.csv") %>%
+    add_column("Depth (cm)" = depth, .after = "amostra") %>%
+    group_by(`Depth (cm)`) %>%
+    summarize(across(c(2:3402), mean)) %>%
+    pivot_longer(cols = c(2:3402), names_to = "Bands", values_to = "Values") %>%
+    pivot_wider(names_from = "Depth (cm)", values_from = "Values")
+mir_ox_quartz <- read_csv("Data/Espectral/mir_ox_quartz.csv") %>%
+    add_column("Depth (cm)" = depth, .after = "amostra") %>%
+    group_by(`Depth (cm)`) %>%
+    summarize(across(c(2:3402), mean)) %>%
+    pivot_longer(cols = c(2:3402), names_to = "Bands", values_to = "Values") %>%
+    pivot_wider(names_from = "Depth (cm)", values_from = "Values")
+mir_glei_ufla <- read_csv("Data/Espectral/mir_glei_ufla.csv") %>%
+    add_column("Depth (cm)" = depth, .after = "amostra") %>%
+    group_by(`Depth (cm)`) %>%
+    summarize(across(c(2:3402), mean)) %>%
+    pivot_longer(cols = c(2:3402), names_to = "Bands", values_to = "Values") %>%
+    pivot_wider(names_from = "Depth (cm)", values_from = "Values")
+
+mir_pca_ox_ufla <- prcomp(mir_ox_ufla[-1], scale = T, center = T, rank. = 2)
+pc1_var_exp <- round(summary(mir_pca_ox_ufla)$importance[2, 1], 4) * 100
+pc1_var_exp <- paste0("PC1 ", pc1_var_exp, "%")
+pc2_var_exp <- round(summary(mir_pca_ox_ufla)$importance[2, 2], 4) * 100
+pc2_var_exp <- paste0("PC2 ", pc2_var_exp, "%")
+mir_pca_ox_ufla <- mir_pca_ox_ufla$rotation %>%
+    t() %>%
+    as_tibble()
+mir_pca_ox_ufla <- mir_pca_ox_ufla %>%
+    add_column("PC" = c("PC1", "PC2")) %>%
+    pivot_longer(-"PC", names_to = "Depth (cm)", values_to = "Values") %>%
+    pivot_wider(names_from = "PC", values_from = "Values") %>%
+    mutate(`Depth (cm)` = factor(`Depth (cm)`,
+                                 labels = depth_order,
+                                 ordered = T))
+
+mir_pca_ox_ufla_plot <- ggplot(mir_pca_ox_ufla, aes(x = PC1, y = PC2)) +
+    xlab(pc1_var_exp) + ylab(pc2_var_exp) +
+    ggtitle("Typic Udifolists (TU) - MIR") +
+    scale_x_continuous(labels = number_format(accuracy = 0.001)) +
+    pca_layout
+
+mir_pca_ox_quartz <- prcomp(mir_ox_quartz[-1], scale = T, center = T, rank. = 2)
+pc1_var_exp <- round(summary(mir_pca_ox_quartz)$importance[2, 1], 4) * 100
+pc1_var_exp <- paste0("PC1 ", pc1_var_exp, "%")
+pc2_var_exp <- round(summary(mir_pca_ox_quartz)$importance[2, 2], 4) * 100
+pc2_var_exp <- paste0("PC2 ", pc2_var_exp, "%")
+mir_pca_ox_quartz <- mir_pca_ox_quartz$rotation %>%
+    t() %>%
+    as_tibble()
+mir_pca_ox_quartz <- mir_pca_ox_quartz %>%
+    add_column("PC" = c("PC1", "PC2")) %>%
+    pivot_longer(-"PC", names_to = "Depth (cm)", values_to = "Values") %>%
+    pivot_wider(names_from = "PC", values_from = "Values") %>%
+    mutate(`Depth (cm)` = factor(`Depth (cm)`,
+                                 labels = depth_order,
+                                 ordered = T))
+
+mir_pca_ox_quartz_plot <- ggplot(mir_pca_ox_quartz, aes(x = PC1, y = PC2)) +
+    xlab(pc1_var_exp) + ylab(pc2_var_exp) +
+    ggtitle("Typic Dystrustepts (TD) - MIR") +
+    pca_layout
+
+mir_pca_glei_ufla <- prcomp(mir_glei_ufla[-1], scale = T, center = T, rank. = 2)
+pc1_var_exp <- round(summary(mir_pca_glei_ufla)$importance[2, 1], 4) * 100
+pc1_var_exp <- paste0("PC1 ", pc1_var_exp, "%")
+pc2_var_exp <- round(summary(mir_pca_glei_ufla)$importance[2, 2], 4) * 100
+pc2_var_exp <- paste0("PC2 ", pc2_var_exp, "%")
+mir_pca_glei_ufla <- mir_pca_glei_ufla$rotation %>%
+    t() %>%
+    as_tibble()
+mir_pca_glei_ufla <- mir_pca_glei_ufla %>%
+    add_column("PC" = c("PC1", "PC2")) %>%
+    pivot_longer(-"PC", names_to = "Depth (cm)", values_to = "Values") %>%
+    pivot_wider(names_from = "PC", values_from = "Values") %>%
+    mutate(`Depth (cm)` = factor(`Depth (cm)`,
+                                 labels = depth_order,
+                                 ordered = T))
+
+mir_pca_glei_ufla_plot <- ggplot(mir_pca_glei_ufla, aes(x = PC1, y = PC2)) +
+    xlab(pc1_var_exp) + ylab(pc2_var_exp) +
+    ggtitle("Typic Endoaquents (TE) - MIR") +
+    pca_layout
+
+ggarrange(pxrf_pca_ox_ufla_plot, pxrf_pca_ox_quartz_plot, pxrf_pca_glei_ufla_plot,
+          visnir_pca_ox_ufla_plot, visnir_pca_ox_quartz_plot, visnir_pca_glei_ufla_plot, 
+          mir_pca_ox_ufla_plot, mir_pca_ox_quartz_plot, mir_pca_glei_ufla_plot,
+          common.legend = T, legend = "bottom")
+
+ggsave("pca_plots.png", device = "png",
+       width = 297 * 0.7, height = 210 * 0.75, units = "mm", bg = "white")
 
 # XRD ##############################################################################################
 
