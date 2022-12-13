@@ -135,7 +135,7 @@ pxrf_depth_plots <- ggarrange(pxrf_plot_arrange[["ox_ufla"]],
 ggsave("pxrf_depth.png", pxrf_depth_plots, device = "png",
        width = 250, height = 150, units = "mm", bg = "white")
 
-###  ATTRIBUTES ###########################################################################
+### FERTILITY ATTRIBUTES ###########################################################################
 
 # Loading data
 fertility_ox_ufla <- read_csv("Data/Fertilidade/fertilidade_ox_ufla.csv")
